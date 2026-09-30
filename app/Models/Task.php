@@ -6,18 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Task extends Model
 {
-    // Baris ini yang perlu ditambahkan:
+    // Sesuaikan jika modelmu punya kolom lain
     protected $fillable = [
-        'title',
-        'description',
-        'priority',
-        'energy_level',
-        'deadline',
-        'is_completed',
-        'parent_id',
-        'user_id'
+        'user_id', 'title', 'description', 'category',
+        'priority', 'deadline', 'is_completed', 'completed_at',
     ];
-    public function subtasks() {
-    return $this->hasMany(Task::class, 'parent_id');
-}
+
+    protected $casts = [
+        'is_completed' => 'boolean',
+        'completed_at' => 'datetime',
+    ];
 }
