@@ -22,6 +22,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
     ];
 
@@ -51,6 +52,11 @@ class User extends Authenticatable
         public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+        public function dailyReports(): HasMany
+    {
+        return $this->hasMany(DailyReport::class);
     }
 
     public function isAdmin(): bool

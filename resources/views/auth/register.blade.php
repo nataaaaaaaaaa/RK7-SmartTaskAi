@@ -1,65 +1,62 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar - SmartTask AI</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { min-height: 100vh; display: flex; align-items: center; background: linear-gradient(135deg, #4f46e5, #7c3aed); font-family: 'Plus Jakarta Sans', sans-serif; padding: 24px 0; }
-        .card { border: none; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,.2); }
-        .form-control { background: #f1f5f9; border: 0; }
-        .btn-gradient { background: linear-gradient(90deg, #4f46e5, #7c3aed); color: #fff; border: 0; font-weight: 600; }
-        .btn-gradient:hover { color: #fff; opacity: .92; }
-        a { color: #4f46e5; }
-    </style>
-</head>
-<body>
-<div class="container" style="max-width: 440px;">
-    <div class="text-center text-white mb-4">
-        <h2 class="fw-bold"><i class="bi bi-robot me-2"></i>SmartTask AI</h2>
-        <p class="mb-0 opacity-75">Buat akun untuk mulai mengatur tugasmu</p>
-    </div>
+@extends('layouts.auth')
+@section('title', 'Daftar')
 
-    <div class="card p-4">
-        @if ($errors->any())
-            <div class="alert alert-danger small rounded-4 border-0">
-                <ul class="mb-0 ps-3">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+@section('content')
+@php
+$input = 'w-full rounded-xl border-stone-300 bg-white px-4 py-3 text-sm focus:border-emerald-600 focus:ring-emerald-600';
+$label = 'mb-1.5 block text-xs font-semibold text-stone-600';
+@endphp
+
+<div class="rounded-3xl border border-stone-200 bg-white p-7 shadow-sm sm:p-9">
+    <h1 class="text-2xl font-bold">Buat akun</h1>
+    <p class="mb-7 mt-1 text-sm text-stone-500">Daftar untuk mulai mencatat tugas harian Anda.</p>
+
+    <form method="POST" action="{{ route('register') }}" class="space-y-4" x-data="{ show: false }">
+        @csrf
+
+        <div>
+            <label for="name" class="{{ $label }}">Nama lengkap</label>
+            <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus autocomplete="name" class="{{ $input }}">
+            @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label for="email" class="{{ $label }}">Email</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required autocomplete="username" class="{{ $input }}">
+            @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label for="phone" class="{{ $label }}">Nomor telepon <span class="font-normal text-stone-400">(opsional)</span></label>
+            <input id="phone" type="tel" name="phone" value="{{ old('phone') }}" autocomplete="tel" inputmode="tel" placeholder="Contoh: 081234567890" class="{{ $input }}">
+            @error('phone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label for="password" class="{{ $label }}">Kata sandi</label>
+            <div class="relative">
+                <input id="password" :type="show ? 'text' : 'password'" name="password" required autocomplete="new-password" class="{{ $input }} pr-11">
+                <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600" aria-label="Tampilkan atau sembunyikan kata sandi">
+                    <i class="bi" :class="show ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
             </div>
-        @endif
+            @error('password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@else<p class="mt-1 text-xs text-stone-500">Minimal 8 karakter.</p>@enderror
+        </div>
 
-        <form method="POST" action="{{ route('register') }}">
-            @csrf
-            <div class="mb-3">
-                <label for="name" class="form-label small fw-bold">Nama lengkap</label>
-                <input id="name" type="text" name="name" value="{{ old('name') }}" class="form-control form-control-lg" required autofocus autocomplete="name">
-            </div>
+        <div>
+            <label for="password_confirmation" class="{{ $label }}">Ulangi kata sandi</label>
+            <input id="password_confirmation" :type="show ? 'text' : 'password'" name="password_confirmation" required autocomplete="new-password" class="{{ $input }}">
+            @error('password_confirmation')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
 
-            <div class="mb-3">
-                <label for="email" class="form-label small fw-bold">Email</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" class="form-control form-control-lg" required autocomplete="username">
-            </div>
+        <button type="submit" class="w-full rounded-full bg-emerald-700 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800">
+            Daftar
+        </button>
+    </form>
 
-            <div class="mb-3">
-                <label for="password" class="form-label small fw-bold">Password</label>
-                <input id="password" type="password" name="password" class="form-control form-control-lg" required autocomplete="new-password">
-                <div class="form-text small">Minimal 8 karakter.</div>
-            </div>
-
-            <div class="mb-4">
-                <label for="password_confirmation" class="form-label small fw-bold">Ulangi password</label>
-                <input id="password_confirmation" type="password" name="password_confirmation" class="form-control form-control-lg" required autocomplete="new-password">
-            </div>
-
-            <button type="submit" class="btn btn-gradient btn-lg w-100 shadow">Daftar</button>
-        </form>
-
-        <p class="text-center small text-muted mt-4 mb-0">
-            Sudah punya akun? <a href="{{ route('login') }}" class="fw-bold text-decoration-none">Masuk</a>
-        </p>
-    </div>
+    <p class="mt-6 text-center text-sm text-stone-500">
+        Sudah punya akun?
+        <a href="{{ route('login') }}" class="font-semibold text-emerald-700 hover:underline">Masuk</a>
+    </p>
 </div>
-</body>
-</html>
+@endsection

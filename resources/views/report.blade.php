@@ -1,146 +1,149 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Tugas - SmartTask AI</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { background: #f0f2f5; font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; }
-        .card { border: none; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,.06); }
-        .progress { height: 10px; border-radius: 10px; }
-        .progress-bar { background: linear-gradient(90deg, #4f46e5, #7c3aed); }
-        .btn-gradient { background: linear-gradient(90deg, #4f46e5, #7c3aed); color: #fff; border: 0; font-weight: 600; }
-        .btn-gradient:hover { color: #fff; opacity: .92; }
-        .bar-wrap { display:flex; align-items:flex-end; gap:10px; height:150px; }
-        .bar-col  { flex:1; text-align:center; }
-        .bar      { background:linear-gradient(180deg,#7c3aed,#4f46e5); border-radius:8px 8px 0 0; min-height:4px; }
-        .bar.zero { background:#e2e8f0; }
-        @media print {
-            .no-print { display: none !important; }
-            body { background: #fff; }
-            .card { box-shadow: none; border: 1px solid #e2e8f0; }
-        }
-    </style>
-</head>
-<body>
+@extends('layouts.main')
+@section('title', 'Laporan')
+@section('heading', 'Laporan Kegiatan')
+
+@section('content')
 @php
-    $total = $tasks->count();
-    $done  = $tasks->where('is_completed', true)->count();
-    $rate  = $total ? round($done / $total * 100) : 0;
-    $pct   = fn($d, $t) => $t ? round($d / $t * 100) : 0;
+    $statusChip = [
+        'submitted' => ['bg-emerald-100 text-emerald-700', 'Terkirim tepat waktu'],
+        'late'      => ['bg-red-100 text-red-700',         'Terlambat'],
+        'draft'     => ['bg-amber-100 text-amber-700',     'Draf belum dikirim'],
+        'missing'   => ['bg-stone-200 text-stone-600',     'Belum mengisi'],
+    ];
+    $tiles = [
+        ['Tepat waktu',    $stats['submitted'], 'bi-check2-circle',  'bg-emerald-100 text-emerald-700'],
+        ['Terlambat',      $stats['late'],      'bi-alarm',          'bg-red-100 text-red-700'],
+        ['Draf',           $stats['draft'],     'bi-pencil-square',  'bg-amber-100 text-amber-700'],
+        ['Belum mengisi',  $stats['missing'],   'bi-slash-circle',   'bg-stone-200 text-stone-600'],
+    ];
+    $query   = ['from' => $from->toDateString(), 'to' => $to->toDateString()];
+    $btnMain = 'inline-flex items-center justify-center gap-1.5 rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800';
+    $btnSoft = 'inline-flex items-center justify-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-50';
+    $chip    = 'rounded-full border border-stone-300 bg-white px-3 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-50';
 @endphp
 
-<div class="container py-4" style="max-width: 860px;">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+<div x-data="{ img: null }">
+
+    {{-- Judul + aksi --}}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-            <h3 class="fw-bold mb-0"><i class="bi bi-bar-chart-line me-2"></i>Laporan Produktivitas</h3>
-            <small class="text-muted">{{ Auth::user()->name }} · dibuat {{ now()->translatedFormat('d F Y') }}</small>
+            <h2 class="text-2xl font-bold">Laporan Kegiatan Harian</h2>
+            <p class="text-sm text-stone-500">{{ Auth::user()->name }} · {{ $from->translatedFormat('d M Y') }} sampai {{ $to->translatedFormat('d M Y') }}</p>
         </div>
-        <div class="d-flex gap-2 no-print">
-            <a href="/tasks" class="btn btn-light rounded-pill shadow-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
-            <a href="/report/export" class="btn btn-outline-success rounded-pill"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Unduh CSV</a>
-            <button onclick="window.print()" class="btn btn-gradient rounded-pill"><i class="bi bi-printer me-1"></i>Cetak / PDF</button>
+        <div class="flex gap-2 print:hidden">
+            <a href="{{ route('report.export', $query) }}" class="{{ $btnSoft }}"><i class="bi bi-file-earmark-spreadsheet"></i>Unduh CSV</a>
+            <button type="button" onclick="window.print()" class="{{ $btnMain }}"><i class="bi bi-printer"></i>Cetak / PDF</button>
         </div>
     </div>
 
-    @if($total === 0)
-        <div class="card p-5 text-center">
-            <i class="bi bi-inbox fs-1 text-muted mb-2"></i>
-            <h6 class="fw-bold">Belum ada data untuk dilaporkan</h6>
-            <p class="text-muted small mb-0">Tambahkan beberapa tugas dulu, lalu kembali ke halaman ini.</p>
-        </div>
-    @else
-        <div class="row g-3 mb-3 text-center">
-            <div class="col-6 col-md-3"><div class="card p-3"><small class="text-muted">Total tugas</small><h3 class="fw-bold m-0">{{ $total }}</h3></div></div>
-            <div class="col-6 col-md-3"><div class="card p-3"><small class="text-muted">Selesai</small><h3 class="fw-bold m-0 text-success">{{ $done }}</h3></div></div>
-            <div class="col-6 col-md-3"><div class="card p-3"><small class="text-muted">Belum selesai</small><h3 class="fw-bold m-0 text-warning">{{ $total - $done }}</h3></div></div>
-            <div class="col-6 col-md-3"><div class="card p-3"><small class="text-muted">Terlambat</small><h3 class="fw-bold m-0 text-danger">{{ $overdue }}</h3></div></div>
-        </div>
+    {{-- Filter tanggal --}}
+    <form method="GET" action="{{ route('report') }}" class="mb-6 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm print:hidden">
+        <div class="flex flex-wrap items-end gap-3">
+            <div>
+                <label for="from" class="mb-1 block text-xs font-semibold text-stone-600">Dari tanggal</label>
+                <input id="from" type="date" name="from" value="{{ $from->toDateString() }}" max="{{ $current->toDateString() }}" class="rounded-xl border-stone-300 bg-white text-sm focus:border-emerald-600 focus:ring-emerald-600">
+            </div>
+            <div>
+                <label for="to" class="mb-1 block text-xs font-semibold text-stone-600">Sampai tanggal</label>
+                <input id="to" type="date" name="to" value="{{ $to->toDateString() }}" max="{{ $current->toDateString() }}" class="rounded-xl border-stone-300 bg-white text-sm focus:border-emerald-600 focus:ring-emerald-600">
+            </div>
+            <button class="{{ $btnMain }}"><i class="bi bi-funnel"></i>Terapkan</button>
 
-        <div class="card p-4 mb-3">
-            <div class="d-flex justify-content-between fw-bold mb-2"><span>Tingkat penyelesaian</span><span>{{ $rate }}%</span></div>
-            <div class="progress"><div class="progress-bar" style="width: {{ $rate }}%"></div></div>
-            <p class="small text-muted mt-3 mb-0">
-                @if($rate >= 80) Kerja bagus! Hampir semua tugasmu sudah selesai.
-                @elseif($rate >= 50) Sudah separuh jalan. Fokus ke tugas yang tersisa, terutama yang mendekati tenggat.
-                @else Masih banyak tugas terbuka. Mulai dari yang paling urgent agar tidak menumpuk.
-                @endif
-                @if($overdue > 0) Ada <strong>{{ $overdue }}</strong> tugas yang sudah lewat tenggat. @endif
-            </p>
+            <div class="flex flex-wrap gap-2 sm:ml-auto">
+                <a href="{{ route('report', ['from' => $current->copy()->subDays(6)->toDateString(), 'to' => $current->toDateString()]) }}" class="{{ $chip }}">7 hari</a>
+                <a href="{{ route('report', ['from' => $current->copy()->subDays(29)->toDateString(), 'to' => $current->toDateString()]) }}" class="{{ $chip }}">30 hari</a>
+                <a href="{{ route('report', ['from' => $current->copy()->startOfMonth()->toDateString(), 'to' => $current->toDateString()]) }}" class="{{ $chip }}">Bulan ini</a>
+            </div>
         </div>
+    </form>
 
-        {{-- Analitik 7 hari --}}
-        @php $max = max(1, $weekly->max('count')); @endphp
-        <div class="card p-4 mb-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-2"></i>Analitik 7 hari terakhir</h6>
-
-            <div class="row g-3 text-center mb-4">
-                <div class="col-4">
-                    <small class="text-muted">Selesai minggu ini</small>
-                    <h3 class="fw-bold m-0">{{ $weekTotal }}</h3>
-                </div>
-                <div class="col-4">
-                    <small class="text-muted">Tepat waktu</small>
-                    <h3 class="fw-bold m-0 {{ ($onTimeRate ?? 100) >= 70 ? 'text-success' : 'text-danger' }}">
-                        {{ $onTimeRate !== null ? $onTimeRate . '%' : '-' }}
-                    </h3>
-                </div>
-                <div class="col-4">
-                    <small class="text-muted">Streak</small>
-                    <h3 class="fw-bold m-0 text-warning">{{ $streak }} <small class="fs-6">hari</small></h3>
+    {{-- Ringkasan --}}
+    <section class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        @foreach($tiles as [$lbl, $val, $icon, $tone])
+            <div class="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                <div class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl {{ $tone }}"><i class="bi {{ $icon }}"></i></div>
+                <div>
+                    <p class="text-2xl font-bold leading-none">{{ $val }}</p>
+                    <p class="mt-1 text-xs text-stone-500">{{ $lbl }}</p>
                 </div>
             </div>
+        @endforeach
+    </section>
 
-            <div class="bar-wrap">
-                @foreach($weekly as $d)
-                    <div class="bar-col">
-                        <div class="small fw-bold">{{ $d['count'] }}</div>
-                        <div class="bar {{ $d['count'] ? '' : 'zero' }}" style="height: {{ $d['count'] / $max * 100 }}px"></div>
-                        <div class="small text-muted mt-1">{{ $d['label'] }}</div>
+    <section class="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div class="mb-2 flex items-center justify-between">
+            <h3 class="font-bold">Kepatuhan pengisian</h3>
+            <span class="text-xl font-bold text-emerald-700">{{ $stats['compliance'] }}%</span>
+        </div>
+        <div class="h-3 overflow-hidden rounded-full bg-stone-100" role="progressbar" aria-valuenow="{{ $stats['compliance'] }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="h-full rounded-full bg-emerald-600" style="width: {{ $stats['compliance'] }}%"></div>
+        </div>
+        <p class="mt-2 text-xs text-stone-500">
+            {{ $stats['submitted'] + $stats['late'] }} dari {{ $stats['workdays'] }} hari kerja sudah mengirim laporan.
+            Total {{ $stats['activities'] }} kegiatan dan {{ $stats['photos'] }} foto pada periode ini.
+        </p>
+    </section>
+
+    {{-- Riwayat per hari --}}
+    <div class="space-y-4">
+        @foreach($days as $day)
+            @php
+                $report = $day['report'];
+                $status = $day['status'];
+            @endphp
+            @continue($status === 'off')
+
+            <article class="flex gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm {{ $status === 'missing' ? 'opacity-70' : '' }}">
+                {{-- Tanggal --}}
+                <div class="w-14 shrink-0 text-center">
+                    <p class="text-2xl font-bold leading-none">{{ $day['date']->format('d') }}</p>
+                    <p class="mt-1 text-[11px] font-semibold uppercase text-stone-500">{{ $day['date']->translatedFormat('M Y') }}</p>
+                    <p class="text-[11px] text-stone-400">{{ $day['date']->translatedFormat('D') }}</p>
+                </div>
+
+                <div class="min-w-0 flex-1">
+                    <div class="mb-2 flex flex-wrap items-center gap-2">
+                        <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $statusChip[$status][0] }}">{{ $statusChip[$status][1] }}</span>
+                        @if($report?->submitted_at)
+                            <span class="text-xs text-stone-500"><i class="bi bi-clock mr-1"></i>Dikirim {{ $report->submitted_at->translatedFormat('d M, H.i') }}</span>
+                        @endif
                     </div>
-                @endforeach
-            </div>
 
-            <p class="small text-muted mt-3 mb-0">
-                @if($weekTotal === 0)
-                    Belum ada tugas yang diselesaikan dalam 7 hari terakhir. Coba selesaikan satu tugas kecil hari ini untuk memulai streak.
-                @else
-                    Kamu menyelesaikan <strong>{{ $weekTotal }}</strong> tugas minggu ini; hari paling produktif adalah
-                    <strong>{{ $bestDay['label'] }}</strong> ({{ $bestDay['count'] }} tugas).
-                    @if($onTimeRate !== null && $onTimeRate < 70) Ketepatan waktumu masih rendah, coba mulai tugas lebih awal dari tenggatnya. @endif
-                    @if($streak >= 3) Streak {{ $streak }} hari, pertahankan! @endif
+                    @if($report && $report->activities->isNotEmpty())
+                        <ol class="space-y-4">
+                            @foreach($report->activities as $a)
+                                <li>
+                                    <p class="font-semibold"><span class="mr-1.5 text-stone-400">{{ $loop->iteration }}.</span>{{ $a->title }}</p>
+                                    @if($a->description)<p class="mt-0.5 whitespace-pre-line text-sm text-stone-600">{{ $a->description }}</p>@endif
+                                    @if($a->photos->isNotEmpty())
+                                        <div class="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-6 print:grid-cols-6">
+                                            @foreach($a->photos as $photo)
+                                                <button type="button" @click="img = @js($photo->url)" class="overflow-hidden rounded-lg" aria-label="Lihat foto">
+                                                    <img src="{{ $photo->url }}" alt="Foto kegiatan" loading="lazy" class="aspect-square w-full object-cover">
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ol>
+                    @else
+                        <p class="text-sm text-stone-500">Tidak ada laporan kegiatan pada hari ini.</p>
+                    @endif
+                </div>
+
+                @if($status === 'draft' || $status === 'missing')
+                    <a href="{{ route('dashboard', ['date' => $day['date']->toDateString()]) }}" class="hidden self-start text-xs font-semibold text-emerald-700 hover:underline sm:block print:hidden">Isi / kirim</a>
                 @endif
-            </p>
-        </div>
+            </article>
+        @endforeach
+    </div>
 
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="card p-4 h-100">
-                    <h6 class="fw-bold mb-3">Per kategori</h6>
-                    @foreach($byCategory as $name => $c)
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between small"><span>{{ $name }}</span><span class="text-muted">{{ $c['done'] }}/{{ $c['total'] }}</span></div>
-                            <div class="progress"><div class="progress-bar" style="width: {{ $pct($c['done'], $c['total']) }}%"></div></div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card p-4 h-100">
-                    <h6 class="fw-bold mb-3">Per prioritas</h6>
-                    @foreach($byPriority as $p)
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between small"><span>{{ $p['label'] }}</span><span class="text-muted">{{ $p['done'] }}/{{ $p['total'] }}</span></div>
-                            <div class="progress"><div class="progress-bar" style="width: {{ $pct($p['done'], $p['total']) }}%"></div></div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    @endif
+    {{-- Pratinjau foto ukuran penuh --}}
+    <div x-show="img" x-cloak @keydown.escape.window="img = null" @click="img = null"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 print:hidden">
+        <img :src="img" alt="Foto kegiatan" class="max-h-[90vh] max-w-full rounded-xl">
+        <button type="button" class="absolute right-5 top-5 text-2xl text-white" aria-label="Tutup"><i class="bi bi-x-lg"></i></button>
+    </div>
 </div>
-</body>
-</html>
+@endsection

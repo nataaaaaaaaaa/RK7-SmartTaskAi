@@ -1,68 +1,60 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Masuk - SmartTask AI</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { min-height: 100vh; display: flex; align-items: center; background: linear-gradient(135deg, #4f46e5, #7c3aed); font-family: 'Plus Jakarta Sans', sans-serif; }
-        .card { border: none; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,.2); }
-        .form-control { background: #f1f5f9; border: 0; }
-        .btn-gradient { background: linear-gradient(90deg, #4f46e5, #7c3aed); color: #fff; border: 0; font-weight: 600; }
-        .btn-gradient:hover { color: #fff; opacity: .92; }
-        a { color: #4f46e5; }
-    </style>
-</head>
-<body>
-<div class="container" style="max-width: 440px;">
-    <div class="text-center text-white mb-4">
-        <h2 class="fw-bold"><i class="bi bi-robot me-2"></i>SmartTask AI</h2>
-        <p class="mb-0 opacity-75">Masuk untuk mengelola tugasmu</p>
-    </div>
+@extends('layouts.auth')
+@section('title', 'Masuk')
 
-    <div class="card p-4">
-        @if (session('status'))
-            <div class="alert alert-success small rounded-4 border-0">{{ session('status') }}</div>
-        @endif
+@section('content')
+@php
+    $input = 'w-full rounded-xl border-stone-300 bg-white px-4 py-3 text-sm focus:border-emerald-600 focus:ring-emerald-600';
+    $label = 'mb-1.5 block text-xs font-semibold text-stone-600';
+@endphp
 
-        @if ($errors->any())
-            <div class="alert alert-danger small rounded-4 border-0">
-                <ul class="mb-0 ps-3">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+<div class="rounded-3xl border border-stone-200 bg-white p-7 shadow-sm sm:p-9">
+    <h1 class="text-2xl font-bold">Selamat datang kembali</h1>
+    <p class="mb-7 mt-1 text-sm text-stone-500">Masuk untuk mengelola tugas harian Anda.</p>
+
+    @if(session('status'))
+        <div class="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200" role="status">
+            {{ session('status') }}
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('login') }}" class="space-y-4" x-data="{ show: false }">
+        @csrf
+
+        <div>
+            <label for="email" class="{{ $label }}">Email</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" class="{{ $input }}">
+            @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label for="password" class="{{ $label }}">Kata sandi</label>
+            <div class="relative">
+                <input id="password" :type="show ? 'text' : 'password'" name="password" required autocomplete="current-password" class="{{ $input }} pr-11">
+                <button type="button" @click="show = !show" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600" aria-label="Tampilkan atau sembunyikan kata sandi">
+                    <i class="bi" :class="show ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
             </div>
-        @endif
+            @error('password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
 
-        <form method="POST" action="{{ route('login') }}">
-            @csrf
-            <div class="mb-3">
-                <label for="email" class="form-label small fw-bold">Email</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" class="form-control form-control-lg" required autofocus autocomplete="username">
-            </div>
+        <div class="flex items-center justify-between">
+            <label for="remember_me" class="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
+                <input id="remember_me" type="checkbox" name="remember" class="rounded border-stone-300 text-emerald-700 focus:ring-emerald-600">
+                Ingat saya
+            </label>
+            @if(Route::has('password.request'))
+                <a href="{{ route('password.request') }}" class="text-sm font-semibold text-emerald-700 hover:underline">Lupa kata sandi?</a>
+            @endif
+        </div>
 
-            <div class="mb-2">
-                <label for="password" class="form-label small fw-bold">Password</label>
-                <input id="password" type="password" name="password" class="form-control form-control-lg" required autocomplete="current-password">
-            </div>
+        <button type="submit" class="w-full rounded-full bg-emerald-700 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800">
+            Masuk
+        </button>
+    </form>
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="form-check">
-                    <input id="remember_me" type="checkbox" name="remember" class="form-check-input">
-                    <label for="remember_me" class="form-check-label small">Ingat saya</label>
-                </div>
-                @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" class="small fw-bold text-decoration-none">Lupa password?</a>
-                @endif
-            </div>
-
-            <button type="submit" class="btn btn-gradient btn-lg w-100 shadow">Masuk</button>
-        </form>
-
-        <p class="text-center small text-muted mt-4 mb-0">
-            Belum punya akun? <a href="{{ route('register') }}" class="fw-bold text-decoration-none">Daftar</a>
-        </p>
-    </div>
+    <p class="mt-6 text-center text-sm text-stone-500">
+        Belum punya akun?
+        <a href="{{ route('register') }}" class="font-semibold text-emerald-700 hover:underline">Daftar</a>
+    </p>
 </div>
-</body>
-</html>
+@endsection

@@ -14,9 +14,10 @@ class TaskController extends Controller
         return [
             'title'       => 'required|string|max:120',
             'description' => 'nullable|string|max:500',
-            'category'    => 'nullable|in:Kuliah,Kerja,Pribadi,Lainnya',
+            'category'    => 'nullable|in:' . implode(',', config('tasks.categories')),
             'priority'    => 'required|in:1,2,3',
             'deadline'    => 'nullable|date',
+            'task_date'   => 'nullable|date',
         ];
     }
 
@@ -27,26 +28,31 @@ class TaskController extends Controller
         return $task;
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        $request->validate(['date' => 'nullable|date']);
+
+        $date    = $request->filled('date') ? Carbon::parse($request->date)->startOfDay() : today();
+        $isToday = $date->isToday();
+
+        // To-do untuk tanggal yang dipilih (default: hari ini)
         $tasks = Task::where('user_id', auth()->id())
+            ->whereDate('task_date', $date->toDateString())
             ->orderBy('is_completed')
             ->orderByDesc('priority')
-            ->orderByRaw('deadline IS NULL, deadline ASC')
+            ->orderBy('created_at')
             ->get();
 
-        // "Fokus hari ini": 3 tugas aktif dengan skor tertinggi (terlambat > hari ini > dekat > prioritas)
-        $focus = $tasks->where('is_completed', false)->map(function ($t) {
-            $days  = $t->deadline ? (int) now()->startOfDay()->diffInDays(Carbon::parse($t->deadline)->startOfDay(), false) : null;
-            $score = $t->priority * 10;
-            if ($days !== null) {
-                $score += $days < 0 ? 100 : ($days === 0 ? 80 : ($days <= 3 ? 40 : 0));
-            }
-            $t->focus_score = $score;
-            return $t;
-        })->sortByDesc('focus_score')->take(3)->values();
+        // Tugas hari sebelumnya yang belum selesai (hanya saat melihat hari ini)
+        $carried = $isToday
+            ? Task::where('user_id', auth()->id())
+                ->where('is_completed', false)
+                ->whereDate('task_date', '<', $date->toDateString())
+                ->orderBy('task_date')
+                ->get()
+            : collect();
 
-        return view('dashboard', compact('tasks', 'focus'));
+        return view('dashboard', compact('tasks', 'carried', 'date', 'isToday'));
     }
 
     // Saran kategori & prioritas: pakai Claude jika ANTHROPIC_API_KEY diisi, jika tidak pakai aturan sederhana
@@ -112,8 +118,9 @@ class TaskController extends Controller
 
     public function store(Request $request)
     {
-        $data            = $request->validate($this->rules());
-        $data['user_id'] = auth()->id();
+        $data              = $request->validate($this->rules());
+        $data['user_id']   = auth()->id();
+        $data['task_date'] = $data['task_date'] ?? today()->toDateString();
         Task::create($data);
 
         return back()->with('success', 'Tugas berhasil ditambahkan.');
@@ -121,7 +128,11 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
-        $this->own($task)->update($request->validate($this->rules()));
+        $data = $request->validate($this->rules());
+        if (empty($data['task_date'])) {
+            unset($data['task_date']); // jangan hapus tanggal lama jika tidak dikirim
+        }
+        $this->own($task)->update($data);
 
         return back()->with('success', 'Tugas berhasil diperbarui.');
     }
